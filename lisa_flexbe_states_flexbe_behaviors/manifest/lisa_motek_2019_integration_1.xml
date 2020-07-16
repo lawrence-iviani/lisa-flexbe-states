@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="Lisa Motek 2019 Integration 1">
+
+	<executable package_path="lisa_flexbe_states_flexbe_behaviors.lisa_motek_2019_integration_1_sm" class="LisaMotek2019Integration1SM" />
+	<tagstring>Motek Sim2Log Lisa</tagstring>
+	<author>Lawrence Iviani</author>
+	<date>Tue Jul 14 2020</date>
+	<description>
+		Lisa test playground on top of 
+Behavior for the Motek demo 2019 Simulation
+	</description>
+
+
+	<!-- Contained Behaviors -->
+
+	<!-- Available Parameters -->
+
+</behavior>
