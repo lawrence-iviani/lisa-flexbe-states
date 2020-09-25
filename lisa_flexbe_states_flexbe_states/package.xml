@@ -2,10 +2,9 @@
   <name>lisa_flexbe_states_flexbe_states</name>
   <version>0.0.1</version>
   <description>
-     lisa_flexbe_states_flexbe_states provides a collection of custom states.
-     Feel free to add new states.
+     lisa_flexbe_states_flexbe_states provides a collection of interaction messages (utter, input command, sesssion manegement) with LISA
   </description>
-  <maintainer email="todo@todo.com">TODO</maintainer>
+  <maintainer email="lawrence.iviani@gmail.com">Lawrence Iviani</maintainer>
   <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>
@@ -15,8 +14,8 @@
   <run_depend>flexbe_core</run_depend>
 
   <build_depend>std_msgs</build_depend>
-  <build_depend>lisa_actionlib_msgs</build_depend>
-  <run_depend>lisa_actionlib_msgs</run_depend>
+  <build_depend>lisa_interaction_msgs</build_depend>
+  <run_depend>lisa_interaction_msgs</run_depend>
 
   <export>
     <flexbe_states />

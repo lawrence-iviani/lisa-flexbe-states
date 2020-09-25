@@ -19,13 +19,13 @@ catkin_package(
     LIBRARIES ${PROJECT_NAME})
 
 find_package(catkin REQUIRED COMPONENTS
-    lisa_actionlib_msgs
+    lisa_interaction_msgs
 )
 # generate_messages(DEPENDENCIES lisa_actionlib_msgs)
 
 catkin_package(
     CATKIN_DEPENDS
-    lisa_actionlib_msgs
+    lisa_interaction_msgs
 )
 
 # use add_library() or add_executable() as required

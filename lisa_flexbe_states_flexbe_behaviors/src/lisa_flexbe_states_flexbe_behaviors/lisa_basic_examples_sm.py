@@ -8,9 +8,7 @@
 ###########################################################
 
 from flexbe_core import Behavior, Autonomy, OperatableStateMachine, ConcurrencyContainer, PriorityContainer, Logger
-from lisa_flexbe_states_flexbe_states.lisa_utter_action_state import LisaUtterActionState
-from fzi_flexbe_states.log_userdata_state import LogUserdataState
-from lisa_flexbe_states_flexbe_states.lisa_utter_and_wait_for_intent_action_state import LisaWaitForState
+from lisa_flexbe_states_flexbe_states.lisa_utter_actionlib_state import LisaUtterActionState
 # Additional imports can be added inside the following tags
 # [MANUAL_IMPORT]
 
@@ -18,18 +16,18 @@ from lisa_flexbe_states_flexbe_states.lisa_utter_and_wait_for_intent_action_stat
 
 
 '''
-Created on Wed Jul 15 2020
-@author: lawrence ibiani
+Created on Thu Sep 24 2020
+@author: Lawrence Iviani
 '''
-class TestWaitLisaSM(Behavior):
+class Lisa_Basic_ExamplesSM(Behavior):
 	'''
-	A testing for wait lisa a vocal message
+	Example of basic interaction blocks and usage
 	'''
 
 
 	def __init__(self):
-		super(TestWaitLisaSM, self).__init__()
-		self.name = 'Test Wait Lisa'
+		super(Lisa_Basic_ExamplesSM, self).__init__()
+		self.name = 'Lisa_Basic_Examples'
 
 		# parameters of this behavior
 
@@ -45,7 +43,7 @@ class TestWaitLisaSM(Behavior):
 
 
 	def create(self):
-		# x:761 y:216, x:362 y:358
+		# x:30 y:341, x:130 y:341
 		_state_machine = OperatableStateMachine(outcomes=['finished', 'failed'])
 
 		# Additional creation code can be added inside the following tags
@@ -55,26 +53,12 @@ class TestWaitLisaSM(Behavior):
 
 
 		with _state_machine:
-			# x:58 y:85
-			OperatableStateMachine.add('utter_something',
-										LisaUtterActionState(sentence='Tell me which part to grasp'),
-										transitions={'uttered_all': 'wait_intent', 'timeout': 'failed', 'command_error': 'failed'},
+			# x:314 y:116
+			OperatableStateMachine.add('Utter_Action',
+										LisaUtterActionState(sentence='bla'),
+										transitions={'uttered_all': 'finished', 'timeout': 'failed', 'command_error': 'failed'},
 										autonomy={'uttered_all': Autonomy.Off, 'timeout': Autonomy.Off, 'command_error': Autonomy.Off},
 										remapping={'result_message': 'result_message'})
-
-			# x:569 y:115
-			OperatableStateMachine.add('log_outcome',
-										LogUserdataState(severity=Logger.REPORT_HINT),
-										transitions={'done': 'finished'},
-										autonomy={'done': Autonomy.Off},
-										remapping={'userdata_key': 'payload'})
-
-			# x:308 y:87
-			OperatableStateMachine.add('wait_intent',
-										LisaWaitForState(intent_name='Grasp'),
-										transitions={'continue': 'log_outcome', 'preempt': 'failed'},
-										autonomy={'continue': Autonomy.Off, 'preempt': Autonomy.Off},
-										remapping={'payload': 'payload', 'original_sentence': 'original_sentence'})
 
 
 		return _state_machine
