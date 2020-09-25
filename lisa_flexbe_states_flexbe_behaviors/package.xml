@@ -4,7 +4,7 @@
   <description>
      lisa_flexbe_states_flexbe_behaviors references all implemented behaviors.
   </description>
-  <maintainer email="todo@todo.com">TODO</maintainer>
+  <maintainer email="lawrence.iviani@gmail.com">TODO</maintainer>
   <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>
