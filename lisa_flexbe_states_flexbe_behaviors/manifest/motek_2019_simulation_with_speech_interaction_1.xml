@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="Motek 2019 Simulation With Speech Interaction 1">
+
+	<executable package_path="lisa_flexbe_states_flexbe_behaviors.motek_2019_simulation_with_speech_interaction_1_sm" class="Motek2019SimulationWithSpeechInteraction1SM" />
+	<tagstring>Lisa</tagstring>
+	<author>Lawrence Iviani</author>
+	<date>Tue Jul 14 2020</date>
+	<description>
+		Lisa application with vocal interaction for vocal part
+Behavior for the Motek demo 2019 Simulation
+	</description>
+
+
+	<!-- Contained Behaviors -->
+	<contains name="Grasp Dialogue" />
+	<contains name="Yes-No Dialogue" />
+
+	<!-- Available Parameters -->
+
+</behavior>

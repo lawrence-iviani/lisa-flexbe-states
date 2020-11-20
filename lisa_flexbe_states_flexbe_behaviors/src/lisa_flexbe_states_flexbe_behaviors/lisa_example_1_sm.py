@@ -12,7 +12,6 @@ from lisa_flexbe_states_flexbe_states.lisa_utter_and_wait_for_intent_state impor
 from lisa_flexbe_states_flexbe_states.lisa_utter_state import LisaUtterState
 from lisa_flexbe_states_flexbe_states.lisa_utter_actionlib_state import LisaUtterActionState
 from fzi_flexbe_states.log_userdata_state import LogUserdataState
-from fzi_flexbe_states.concatenate_strings_state import ConcatenateStringsState
 # Additional imports can be added inside the following tags
 # [MANUAL_IMPORT]
 
@@ -69,17 +68,17 @@ class Lisa_Example_1SM(Behavior):
 
 			# x:956 y:62
 			OperatableStateMachine.add('utter',
-										LisaUtterState(text_to_utter='haloooo', context_id=None, wait_time=2),
+										LisaUtterState(text_to_utter='grasp part something', context_id=None, wait_time=10),
 										transitions={'done': 'finished', 'preempt': 'failed', 'timeouted': 'utter_timeout', 'error': 'log_error'},
 										autonomy={'done': Autonomy.Off, 'preempt': Autonomy.Off, 'timeouted': Autonomy.Off, 'error': Autonomy.Off},
 										remapping={'error_reason': 'error_reason'})
 
 			# x:893 y:382
 			OperatableStateMachine.add('UtterErrorExit',
-										LisaUtterActionState(sentence='Error on exit'),
+										LisaUtterActionState(text_to_utter='an error has rasied', wait_time=0),
 										transitions={'uttered_all': 'finished', 'timeout': 'utter_timeout', 'command_error': 'failed'},
 										autonomy={'uttered_all': Autonomy.Off, 'timeout': Autonomy.Off, 'command_error': Autonomy.Off},
-										remapping={'result_message': 'result_message'})
+										remapping={'error_reason': 'error_reason'})
 
 			# x:124 y:404
 			OperatableStateMachine.add('utter_timeout',
@@ -91,7 +90,7 @@ class Lisa_Example_1SM(Behavior):
 			# x:549 y:13
 			OperatableStateMachine.add('log_intent',
 										LogUserdataState(severity=Logger.REPORT_HINT),
-										transitions={'done': 'Compose String'},
+										transitions={'done': 'utter'},
 										autonomy={'done': Autonomy.Off},
 										remapping={'userdata_key': 'payload'})
 
@@ -102,19 +101,12 @@ class Lisa_Example_1SM(Behavior):
 										autonomy={'done': Autonomy.Off},
 										remapping={'userdata_key': 'error_reason'})
 
-			# x:245 y:93
+			# x:261 y:114
 			OperatableStateMachine.add('Utter_not_recogn',
 										LisaUtterState(text_to_utter='Intent not recognized', context_id=None, wait_time=5),
 										transitions={'done': 'finished', 'preempt': 'failed', 'timeouted': 'utter_timeout', 'error': 'log_error'},
 										autonomy={'done': Autonomy.Off, 'preempt': Autonomy.Off, 'timeouted': Autonomy.Off, 'error': Autonomy.Off},
 										remapping={'error_reason': 'error_reason'})
-
-			# x:746 y:13
-			OperatableStateMachine.add('Compose String',
-										ConcatenateStringsState(),
-										transitions={'succeeded': 'utter', 'failed': 'failed'},
-										autonomy={'succeeded': Autonomy.Off, 'failed': Autonomy.Off},
-										remapping={'string1': 'intent_recognized_string', 'string2': 'payload', 'delimiter': 'delimiter_composition_strings', 'result_string': 'intent_recognized_string'})
 
 
 		return _state_machine

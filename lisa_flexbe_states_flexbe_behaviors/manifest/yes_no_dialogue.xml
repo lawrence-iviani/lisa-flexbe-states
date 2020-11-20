@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="Yes-No Dialogue">
+
+	<executable package_path="lisa_flexbe_states_flexbe_behaviors.yes_no_dialogue_sm" class="YesNoDialogueSM" />
+	<tagstring>Lisa Dialogue</tagstring>
+	<author>Lawrence Iviani</author>
+	<date>Tue Nov 11 2020</date>
+	<description>
+		A yes No dialogue, used in different application
+	</description>
+
+
+	<!-- Contained Behaviors -->
+
+	<!-- Available Parameters -->
+
+</behavior>

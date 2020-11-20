@@ -7,29 +7,32 @@ from lisa_interaction_msgs.msg import LisaUtterAction, LisaUtterGoal
 
 class LisaUtterActionState(EventState):
 	'''
-	An actionlib actions to utter a specific sentence
-	The example is based on the DoDishes-example of actionlib (see http://wiki.ros.org/actionlib).
+	An uttering action is performed with high priority (all running dialogue are dropped immediately), this has to be used 
+	to perform an urgent prioritary announcement, possibly out of the context.
 
-	-- sentence string  Sentence to be uttered.
+	-- text_to_utter	string  Sentence to be uttered.
+    	-- wait_time 		float 	wait time before exit (the end of uttering is not yet implemented, this is a fix timeout). If set to 0 (default) exit when the uttering is finished.
 
-	#> result_message 		string 	operation result.
+	#> error_reason 	string 	An eventual error.
 
 	<= uttered_all 		the entire string was uttered.
-	<= timeout		    A time out occurs during the utterance.
-	<= command_error	Cannot send the action goal.
-
+	<= timeout		A time out occurs during the utterance.
+	<= error 		An error happend, more details in error_reason
 	'''
 
-	def __init__(self, sentence):
+	def __init__(self, text_to_utter, wait_time=0):
 		# See example_state.py for basic explanations.
 		super(LisaUtterActionState, self).__init__(outcomes = ['uttered_all', 'timeout', 'command_error'], 
-								output_keys = ['result_message'])
+								output_keys = ['error_reason'])
 		self._topic = '/lisa/say'
 		self._client = ProxyActionClient({self._topic: LisaUtterAction}) # pass required clients as dict (topic: type)
-		self._sentence = sentence
+		self._sentence = text_to_utter
 		# It may happen that the action client fails to send the action goal.
 		self._error = False
-		self._result_message = ''
+		self._error_reason = ''
+		self._wait_time = wait_time
+		if wait_time:
+			Logger.logwarn('time out not yet implemented.')
 
 
 	def execute(self, userdata):
@@ -37,8 +40,8 @@ class LisaUtterActionState(EventState):
 
 		# Check if the client failed to send the goal.
 		if self._error:
-			Logger.logwarn('command_error. result_message: ' + str(self._result_message))
-			userdata.result_message = self._result_message
+			Logger.logwarn('command_error. error_reason: ' + str(self._error_reason))
+			userdata.error_reason = self._error_reason
 			return 'command_error'
 
 		if self._client.has_feedback(self._topic):
@@ -47,9 +50,8 @@ class LisaUtterActionState(EventState):
 		# Check if the action has been finished
 		if self._client.has_result(self._topic):
 			result = self._client.get_result(self._topic)
-			userdata.result_message = 'uttered_all: result: %s' % str(result)			
-			Logger.loginfo('uttered_all: result: %s' % str(result))
-			
+			userdata.error_reason = ''#'uttered_all: result: %s' % str(result)			
+			Logger.loginfo('uttered_all: result: %s' % str(result))		
 			return 'uttered_all'
 		# TODO: get time for TIMEOUT, ros time something
 		# cancel and timeout
@@ -78,8 +80,8 @@ class LisaUtterActionState(EventState):
 		except Exception as e:
 			# Since a state failure not necessarily causes a behavior failure, it is recommended to only print warnings, not errors.
 			# Using a linebreak before appending the error log enables the operator to collapse details in the GUI.
-			self._result_message = 'Failed to send the sentece command:\n%s' % str(e)			
-			Logger.logwarn(self._result_message)			
+			self._error_reason = 'Failed to send the sentece command:\n%s' % str(e)			
+			Logger.logwarn(self._error_reason)			
 			self._error = True
 
 
@@ -89,6 +91,6 @@ class LisaUtterActionState(EventState):
 
 		if not self._client.has_result(self._topic):
 			self._client.cancel(self._topic)
-			self._result_message = 'Cancelled active action goal.'
-			Logger.loginfo(self._result_message)
+			self._error_reason = 'Cancelled active action goal.'
+			Logger.loginfo(self._error_reason)
 			

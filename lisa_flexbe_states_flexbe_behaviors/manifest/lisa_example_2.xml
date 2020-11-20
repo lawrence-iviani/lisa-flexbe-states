@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="Lisa_Example_2">
+
+	<executable package_path="lisa_flexbe_states_flexbe_behaviors.lisa_example_2_sm" class="Lisa_Example_2SM" />
+	<tagstring>Lisa Example Quickstart</tagstring>
+	<author>Lawrence Iviani</author>
+	<date>Thu Sep 24 2020</date>
+	<description>
+		A basic showcase of interaction states for Lisa.
+Use of context is explained
+	</description>
+
+
+	<!-- Contained Behaviors -->
+
+	<!-- Available Parameters -->
+
+</behavior>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="test_single">
+
+	<executable package_path="lisa_flexbe_states_flexbe_behaviors.test_single_sm" class="test_singleSM" />
+	<tagstring>Lisa Example Quickstart</tagstring>
+	<author>lawrence iviani</author>
+	<date>Mon Nov 09 2020</date>
+	<description>
+		a test for block integrity
+	</description>
+
+
+	<!-- Contained Behaviors -->
+
+	<!-- Available Parameters -->
+
+</behavior>

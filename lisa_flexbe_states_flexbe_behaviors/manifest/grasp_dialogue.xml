@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="Grasp Dialogue">
+
+	<executable package_path="lisa_flexbe_states_flexbe_behaviors.grasp_dialogue_sm" class="GraspDialogueSM" />
+	<tagstring>Lisa Dialogue</tagstring>
+	<author>Lawrence Iviani</author>
+	<date>Tue Nov 11 2020</date>
+	<description>
+		Grasp Part Dialogue
+	</description>
+
+
+	<!-- Contained Behaviors -->
+
+	<!-- Available Parameters -->
+
+</behavior>

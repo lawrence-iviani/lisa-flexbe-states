@@ -6,46 +6,66 @@ from threading import Lock
 from lisa_interaction_msgs.msg import  IntentMessage, IntentNotRecognizedMessage, TtsSessionEnded
 from lisa_interaction_msgs.srv import InteractService
 
-# TODO: change name in WaitLisaIntent
+try:
+    from lisa_mqtt_ros_bridge.dialogue import ANONYMOUS_PREFIX, WAKEUPWORD_PREFIX
+except Exception as e:
+    ANONYMOUS_PREFIX = "Anonymous_" # This must be the same as defined in lisa_mqtt_ros_bridge.dialogue
+    WAKEUPWORD_PREFIX = "Wakeupword_"
+
+
 class LisaUtterAndWaitForIntentState(EventState):
     '''
-    Wait for an intent via a service request before continuing.
+    Wait for an intent via a service request before continuing, if a timeout is specified will exit after the wait_time (sec.)
+    Intents recognized or not are emitted via a ROS topic. If context_id is given this will be used to associate the interaction
+    to a specific context, otherwise an anonymous interaction is started.
 
-    -- intent_name 	string 	The intent  to listen on
-    -- text_to_utter 	string 	A text to utter before waiting for intent (default empty text)
-    -- context_id, 	string 	A idenitifier of a larger dialogue session
-    -- intents		list	A list of string containing intent to listen. Empty list, will listen to all available intents
-    -- wait_time 	float 	wait time out in sec (default 0 no timeout)
+    
+    -- context_id, 	string 	A idenitifier of a larger dialogue session.
+    -- intents		list	A list of string containing intent to listen. Empty list, will listen to all available intents.
+    -- wait_time 	float 	wait time out in sec (default 0 no timeout and wait indefinitely). This include also the uttering time (text_to_utter is not empty).
 
-    <= intent_recognized 	An intent has detected
-    <= intent_not_recognized	Speech was detected but no intent associated
-    <= preempt 			Example for a failure outcome.
-    <= timeouted 		A time out in waiting the intent has happend
+    ># text_to_utter 	string 	A text to utter before waiting for intent (default empty text).
+
+    #> payload 			dict 	The payload of the intent in the form of a dictonary (key/value) where the value is always a string.
+    #> original_sentence 	string 	The original sentence.
+    #> error_reason 		string 	An eventual error as string.
+    #> intent_recognized 	string 	The intent recognized if any
+   
+
+    <= intent_recognized 	An intent has detected (payload if any and original_sentence are returned).
+    <= intent_not_recognized	Speech was detected but no intent associated (original_sentence is returned).
+    <= preempt 			Preempted by the user.
+    <= timeouted 		A time out in waiting the intent has happend.
+    <= error 			An error happend, more details in error_reason.
 
     '''
-# TODO: add context? Waiting for input snowboy?
-# I think i need a library of common functions...
-    def __init__(self, intent_name, text_to_utter='', context_id=None, intents = [], wait_time=0): #, payload_keys):
-    # Declare outcomes, input_keys, and output_keys by calling the super constructor with the corresponding arguments.
-        super(LisaUtterAndWaitForIntentState, self).__init__(outcomes = ['intent_recognized', 'intent_not_recognized', 'preempt', 'timeouted', 'error'], output_keys=['payload', 'original_sentence', 'error_reason']) 
+# -- 
+    def __init__(self, context_id=None, 
+                       intents = [], 
+                       wait_time=0): 
+        # Declare outcomes, input_keys, and output_keys by calling the super constructor with the corresponding arguments.
+        super(LisaUtterAndWaitForIntentState, self).__init__(outcomes = ['intent_recognized', 'intent_not_recognized', 'preempt', 'timeouted', 'error'],
+							     input_keys=['text_to_utter'],
+ 							     output_keys=['payload', 'original_sentence', 'error_reason', 'intent_recognized']) 
 
         # Store the name of the topic to listen
 	self._topic_recognized = '/lisa/intent/'
 	self._topic_not_recognized = '/lisa/intent/not_recognized'
 	self._sub_intent = None # subscriber object
+	self._sub_intent_not_recognized = None
 
 	# local variable
-	self._intent_name = intent_name
 	self._wait_time = wait_time
 	self._context_id = context_id
-	self._text = text_to_utter
+	
+	assert isinstance(intents, list), "Intents must be a list of string, instead of {}. Intents: {}".format(intents.__class__, intents)
 	self._intents = intents
 
         # internal state variable
 	self._service_called = False
         self._active = False
         self._triggered = False
-	self._intent_recognized = False
+	self._intent_recognized = None
 
         # Syncronization variable
         self._lock = Lock()
@@ -79,10 +99,14 @@ class LisaUtterAndWaitForIntentState(EventState):
 		if self._intent_recognized:
 			userdata.payload = self._retval_dict
 			userdata.original_sentence = self._original_sentence
+			userdata.intent_recognized = self._intent_recognized
 			Logger.loginfo('execute: intent recognized, \nuserdata:->{}<-'.format(userdata))
 			self._lock.release()			
 			return 'intent_recognized'
 		else:
+			userdata.payload = self._retval_dict
+			userdata.original_sentence = self._original_sentence
+			userdata.intent_recognized = None
 			Logger.loginfo('execute: intent not recognized, \nuserdata:->{}<-'.format(userdata))
 			self._lock.release()			
 			return 'intent_not_recognized'
@@ -91,7 +115,9 @@ class LisaUtterAndWaitForIntentState(EventState):
     def on_enter(self, userdata):
     # This method is called when the state becomes active, i.e. a transition from another state to this one is taken.
 	Logger.loginfo('+-+-+-+- ENTERING  LisaUtterAndWaitForIntentState')
-	# TODO: add utter via calling 
+	assert isinstance(userdata.text_to_utter,  str)
+	self._text = userdata.text_to_utter
+
 	Logger.loginfo('Subscribing topics: {} and {}'.format(self._topic_recognized, self._topic_not_recognized))
 	self._sub_intent = rospy.Subscriber(self._topic_recognized, IntentMessage, self._on_intent_received)		
 	self._sub_intent_not_recognized = rospy.Subscriber(self._topic_not_recognized, IntentNotRecognizedMessage, self._on_intent_not_recognized_received)
@@ -100,19 +126,23 @@ class LisaUtterAndWaitForIntentState(EventState):
 	self._start_time = rospy.get_rostime()
 	try:
 		interact = rospy.ServiceProxy(self._interact_service, InteractService)
-		self._service_called = interact(context_id=self._context_id, text=self._text, canbeenqued=False, intents=self._intents).success
+		# with call will produce the follow behaviour:
+		# - remove an eventual on going session(canbediscarded=False) and 
+		# - start immediately(canbeenqued=False)
+		self._service_called = interact(context_id=self._context_id, text=self._text, canbeenqued=False, canbediscarded=False, intents=self._intents).success
 		Logger.loginfo("Called {} and executed? {}".format(self._interact_service, self._service_called ))		
 	except rospy.ServiceException as e:
 		self._service_called = False
 		self._error_reason = str(e)
 		Logger.logwarn("Failed call service {} error: {}".format(self._interact_service, e))
-
         self._lock.acquire()
         self._active = True
         self._triggered = False
         self._lock.release()
 
     def _get_payload(self, pay_load):
+	# Receive a payload in the format attribute_name=value 
+	# return a dict in the form {'attribute_name': str(value)}
 	# doesnt lock! it expect locking at call level
         if isinstance(pay_load, list):
 		Logger.loginfo('Payload is {}'.format(str(pay_load)))
@@ -130,24 +160,35 @@ class LisaUtterAndWaitForIntentState(EventState):
         Logger.loginfo('Decoded payload={}'  + str(self._retval_dict))
 
     def _on_intent_not_recognized_received(self, data):
-	Logger.loginfo('Received intent not recognized'.format( data))
-	context = data.context_id	
-
-	# TODO: check context, check if it is what expected
-	# if not context == self._context_id:
 
 	self._lock.acquire()
+	context = data.context_id	
+	Logger.loginfo('Received intent not recognized: data: ->{}<-'.format(data))
+
 	if not self._active or self._triggered:
 		Logger.logwarn('Request \n{}\nNot active or already triggered'.format(data))
+	elif not self._is_right_context(context):
+		Logger.logwarn('Received {} as context!!!!!!!!, expected {}'.format(context, self._context_id))	
 	else:
-		# string context_id
-		# string original_input
-		# to retrieve here the value to return, intent,  payload etc.
-		self._original_sentence = str(data.original_input) # TODO: temporary solution
+		self._original_sentence = str(data.original_input) 
 		self._triggered = True
-		self._intent_recognized = False
-		Logger.loginfo('Not intended voacal input :\n->{}<-'.format(self._original_sentence))
+		self._intent_recognized = None
+		Logger.loginfo('input :\n->{}<- is not recognized as valid or expected intent'.format(self._original_sentence))
 	self._lock.release()
+
+    def _is_right_context(self, context):
+	Logger.logdebug('context={}  self._context_id={}'.format(context, self._context_id))
+	# accept all the follow contexts
+	if self._context_id is None:
+		return True 
+	elif (context == self._context_id):
+		return True
+	elif context.startswith(ANONYMOUS_PREFIX): 
+		return True	
+	elif context.startswith(WAKEUPWORD_PREFIX):
+		return True
+	else:
+		return False
 
     # for topic subscription
     def _on_intent_received(self, data):
@@ -160,21 +201,20 @@ class LisaUtterAndWaitForIntentState(EventState):
         intent_name = data.intent_name
         confidence = data.confidence
         pay_load = data.pay_load
-	# TODO: check context, check if it is what expected
-	# if not context == self._context_id:
-	# check intent is what expected
-	if intent_name != self._intent_name:
-		Logger.logwarn('Triggered, intent_name={} but waiting for {}'.format(intent_name, self._intent_name)  )
-		self._lock.release()
-		return
+
 	if not self._active or self._triggered:
 		Logger.logwarn('Request \n{}\nNot active or already triggered'.format(data))
+	elif not self._is_right_context(context):
+		Logger.logwarn('Received {} as context!!!!!!!!, expected {}'.format(context, self._context_id))
+	# check intent is what expected, if no filter(s) ignore the check
+	elif len(self._intents) and intent_name not in self._intents:
+		Logger.logwarn('Triggered, intent_name={} but waiting for {}'.format(intent_name, self._intents)  )
 	else:
 		# to retrieve here the value to return, intent,  payload etc.
 		self._original_sentence = original_input
 		self._get_payload(data.pay_load)
 		self._triggered = True
-		self._intent_recognized = True
+		self._intent_recognized = intent_name
 		Logger.loginfo('Received message:\n{}'.format(data))
 	self._lock.release()
 
@@ -183,6 +223,7 @@ class LisaUtterAndWaitForIntentState(EventState):
     # It can be used to stop possibly running processes started by on_enter.
 	# clean shutdown
         self._sub_intent.unregister()
+	self._sub_intent_not_recognized.unregister()
 	self._lock.acquire()
         self._active = False
 	userdata.error_reason = self._error_reason
