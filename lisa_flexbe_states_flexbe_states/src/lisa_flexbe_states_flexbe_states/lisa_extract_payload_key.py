@@ -37,7 +37,10 @@ class LisaGetPayloadKeyState(EventState):
 			return 'done'
 
     def on_enter(self, userdata):
-		if self._key in userdata.payload:
+		Logger.loginfo('on_enter with  userdata={}, searching for key={}'.format(userdata, self._key,))	
+		Logger.loginfo('on_enter hasattr(userdata, payload)={} and self._key in userdata.payload={}'.format(hasattr(userdata, 'payload'), self._key in userdata.payload,))	
+
+		if hasattr(userdata, 'payload') and self._key in userdata.payload:
 			self._retval = userdata.payload[self._key]
 		else:
 			self._retval = None

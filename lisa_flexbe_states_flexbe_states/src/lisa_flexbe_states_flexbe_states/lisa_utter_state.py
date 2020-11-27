@@ -15,6 +15,7 @@ class LisaUtterState(EventState):
     
     -- context_id, 	string 	A idenitifier of a larger dialogue session.
     -- wait_time 	float 	wait time before exit (the end of uttering is not yet implemented, this is a fix timeout). If set to 0 (default) this is a non blocking state (it calls the service and exit before waiting).
+    -- suspend_time 	float	an eventual wait before exit after uttering (a time out will win in any case). It is useful to connect different part of a dialogue and let some pause in between (default is 0)
 
     ># text_to_utter 	string 	A text to utter before waiting for intent (default empty text).
     #> error_reason 	string 	An eventual error.
@@ -27,14 +28,14 @@ class LisaUtterState(EventState):
     '''
 
 
-    def __init__(self, context_id=None, wait_time=0): #, payload_keys):
+    def __init__(self, context_id=None, wait_time=0, suspend_time=0): #, payload_keys):
     # Declare outcomes, input_keys, and output_keys by calling the super constructor with the corresponding arguments.
         super(LisaUtterState, self).__init__(outcomes = ['done', 'preempt', 'timeouted', 'error'], 
 				     			input_keys=['text_to_utter'],
 							output_keys=['error_reason']) 
 
 	# Internal state
-	self._active = False
+	self._active = False	
 	self._service_called = False
 	self._tts_ended	= False
 
@@ -43,9 +44,9 @@ class LisaUtterState(EventState):
 	self._sub_tts_ended = None
 	
 	# servces parameters to be called 
-	
 	self._context_id = context_id
 	self._wait_time = wait_time
+	self._suspend_time = suspend_time
 
 	# return values
 	self._error_reason = ''
@@ -62,22 +63,31 @@ class LisaUtterState(EventState):
     # This method is called periodically while the state is active.
     # Main purpose is to check state conditions and trigger a corresponding outcome.
     # If no outcome is returned, the state will stay active.
-	
 	self._lock.acquire()	
-	elapsed = rospy.get_rostime() - self._start_time;
+	elapsed = rospy.get_rostime() - self._start_time
 	if not self._service_called:
 		Logger.logwarn('execute: {} not called, reason: ->{}<-'.format(self._utter_service, self._error_reason))
 		self._lock.release()	
 		return 'error'
-	# !!! self._wait_time is 0, exit immediately!
-	if self._wait_time == 0.0 or self._tts_ended:
-		Logger.loginfo('execute: done ')
+	if self._wait_time == 0.0:
+		# wait_time is 0, exit immediately!
+		Logger.loginfo('execute: done no wait')
 		self._lock.release()	
 		return 'done'
-	elif (self._wait_time > 0.0 and elapsed.to_sec() > self._wait_time):
+	if (self._wait_time > 0.0 and elapsed.to_sec() > self._wait_time):
 		Logger.loginfo('execute: Timeouted after {} s'.format(elapsed.to_sec()))	
 		self._lock.release()	
 		return 'timeouted'
+	if self._tts_ended:
+		if self._start_suspended_time is None:
+			Logger.logwarn('Suspended time is not measurable, this is a bug. Workaround: execute: done suspended skipped')
+			self._lock.release()	
+			return 'done'
+		suspended = rospy.get_rostime() - self._start_suspended_time
+		if self._suspend_time==0 or suspended.to_sec() >=  self._suspend_time:
+			Logger.loginfo('execute: done')
+			self._lock.release()	
+			return 'done'
 	self._lock.release()	
 
     def on_enter(self, userdata):
@@ -87,6 +97,7 @@ class LisaUtterState(EventState):
 #	assert hasattr(userdata,  'text_to_utter'), "userdata has not field text_to_utter. userdata ->{}<-".format(userdata)
 	self._text = str(userdata.text_to_utter) if hasattr(userdata,  'text_to_utter') else "No text to utter"
 	self._start_time = rospy.get_rostime()
+	self._start_suspended_time = None
 
 	Logger.loginfo('Subscribing topic: {}'.format(self._topic_tts_ended))
 	self._sub_tts_ended = rospy.Subscriber(self._topic_tts_ended, TtsSessionEnded, self._tts_ended_received)		
@@ -94,6 +105,7 @@ class LisaUtterState(EventState):
 	try:
 		utter = rospy.ServiceProxy(self._utter_service, UtterService)
 		self._service_called = utter(context_id=self._context_id, text=self._text, canbeenqued=False).success
+		# call a service with 
 		Logger.loginfo("Called {} and executed? {}".format(self._utter_service, self._service_called ))
 	except rospy.ServiceException as e:
 		self._service_called = False
@@ -111,6 +123,7 @@ class LisaUtterState(EventState):
 	# if not context == self._context_id:
 	Logger.loginfo("TTS ended with data: ".format(data))
 	self._tts_ended = True
+	self._start_suspended_time = rospy.get_rostime()
 	self._lock.release()
 
     def on_exit(self, userdata):

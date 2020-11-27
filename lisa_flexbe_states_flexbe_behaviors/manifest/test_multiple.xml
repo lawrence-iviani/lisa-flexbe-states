@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="test_multiple">
+
+	<executable package_path="lisa_flexbe_states_flexbe_behaviors.test_multiple_sm" class="test_multipleSM" />
+	<tagstring>Lisa Example Quickstart</tagstring>
+	<author>lawrence iviani</author>
+	<date>Mon Nov 25 2020</date>
+	<description>
+		a test of interactions with several repeated blocks
+	</description>
+
+
+	<!-- Contained Behaviors -->
+
+	<!-- Available Parameters -->
+
+</behavior>
