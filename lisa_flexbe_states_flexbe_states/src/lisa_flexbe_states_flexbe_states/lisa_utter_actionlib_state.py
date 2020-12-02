@@ -32,20 +32,18 @@ class LisaUtterActionState(EventState):
 		self._error_reason = ''
 		self._wait_time = wait_time
 		if wait_time:
-			Logger.logwarn('time out not yet implemented.')
+			Logger.logwarn('time out not yet implemented for LisaUtterActionState')
 
 
 	def execute(self, userdata):
 		# While this state is active, check if the action has been finished and evaluate the result.
-
 		# Check if the client failed to send the goal.
 		if self._error:
 			Logger.logwarn('command_error. error_reason: ' + str(self._error_reason))
 			userdata.error_reason = self._error_reason
 			return 'command_error'
-
 		if self._client.has_feedback(self._topic):
-			Logger.loginfo(self._client.get_feedback(self._topic))
+			pass #Logger.logdebug('Progress {}'.format(self._client.get_feedback(self._topic)))
 
 		# Check if the action has been finished
 		if self._client.has_result(self._topic):
@@ -75,7 +73,7 @@ class LisaUtterActionState(EventState):
 		# Send the goal.
 		self._error = False # make sure to reset the error state since a previous state execution might have failed
 		try:
-			Logger.loginfo('Send \ntopic: {}\n{}goal:\n '.format(self._topic, goal))
+			Logger.loginfo('Send \ntopic: {}\ngoal:{}\n '.format(self._topic, goal))
 			self._client.send_goal(self._topic, goal)
 		except Exception as e:
 			# Since a state failure not necessarily causes a behavior failure, it is recommended to only print warnings, not errors.

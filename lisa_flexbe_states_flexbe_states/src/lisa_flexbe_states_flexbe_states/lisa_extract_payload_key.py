@@ -30,15 +30,15 @@ class LisaGetPayloadKeyState(EventState):
     def execute(self, userdata):
 		userdata.payload_value = self._retval
 		if self._retval is None:
-			Logger.loginfo('Error finding value for key={}'.format(self._key, self._retval))
+			Logger.loginfo('LisaGetPayloadKeyState: Error finding value for key={}'.format(self._key, self._retval))
 			return 'error'	
 		else:
-			Logger.loginfo('Return key={} value={}'.format(self._key, self._retval))			
+			Logger.loginfo('LisaGetPayloadKeyState: found key={} with value={}'.format(self._key, self._retval))			
 			return 'done'
 
     def on_enter(self, userdata):
-		Logger.loginfo('on_enter with  userdata={}, searching for key={}'.format(userdata, self._key,))	
-		Logger.loginfo('on_enter hasattr(userdata, payload)={} and self._key in userdata.payload={}'.format(hasattr(userdata, 'payload'), self._key in userdata.payload,))	
+		Logger.loginfo('LisaGetPayloadKeyState: on_enter with  userdata={}, searching for key={}'.format(userdata, self._key,))	
+		Logger.loginfo('LisaGetPayloadKeyState: on_enter hasattr(userdata, payload)={} and self._key in userdata.payload={}'.format(hasattr(userdata, 'payload'), self._key in userdata.payload,))	
 
 		if hasattr(userdata, 'payload') and self._key in userdata.payload:
 			self._retval = userdata.payload[self._key]

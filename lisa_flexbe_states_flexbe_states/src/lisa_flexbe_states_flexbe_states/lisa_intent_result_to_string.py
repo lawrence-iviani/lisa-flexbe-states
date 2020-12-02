@@ -43,6 +43,7 @@ class LisaRecognitionResultToStringState(EventState):
 		if getattr(userdata, field) is None or getattr(userdata, field) == 'None': return False
 		if len(getattr(userdata, field)) == 0: return False
 		return True
+
 	Logger.logdebug('payload={} - original_sentence={} -  error_reason={} - intent_recognized={}'.format(
 			userdata.payload, userdata.original_sentence, userdata.error_reason, userdata.intent_recognized	))	
 	if _has_user_data_field('error_reason'):
@@ -54,7 +55,7 @@ class LisaRecognitionResultToStringState(EventState):
 			self._text_to_utter = 'During context: '+ self._context +', Got an error: ' + str(userdata.error_reason)
 	elif _has_user_data_field('intent_recognized'):	
 		if self._detail_levels=='low':
-			self._text_to_utter = 'Intent recognized: ' + str(userdata.intent_recognized)
+			self._text_to_utter = 'Intent recognized: ' + str(userdata.intent_recognized) + ', payload is ' + str(userdata.payload)
 		elif self._detail_levels=='mid':
 			self._text_to_utter = 'Intent recognized: ' + str(userdata.intent_recognized) + ', payload is ' + str(userdata.payload)
 		else:
@@ -67,12 +68,8 @@ class LisaRecognitionResultToStringState(EventState):
 			self._text_to_utter = 'Intent not recognized, original sentence' + str(userdata.original_sentence)
 		else:
 			self._text_to_utter = 'During context: '+ self._context +', Intent not recognized, original sentence' + str(userdata.original_sentence)
-	#if hasattr(userdata, 'error_reason') and userdata.error_reason is not None and len(userdata.error_reason)>0:
-	#	self._text_to_utter = 'Got an error: ' + str(userdata.error_reason)
-	#else:
-	#	self._text_to_utter = 'Speech transcription is {}, intent Recognized is {}, payload is {}'.format(
-	#				userdata.original_sentence, userdata.intent_recognized , userdata.payload)
-	Logger.loginfo('+-+-+-+- userdata: |{}|\ntext_to_utter |{}|'.format(userdata, self._text_to_utter))
+
+	Logger.loginfo('LisaRecognitionResultToStringState: userdata: |{}|\ntext_to_utter |{}|'.format(userdata, self._text_to_utter))
 
 		
 	
