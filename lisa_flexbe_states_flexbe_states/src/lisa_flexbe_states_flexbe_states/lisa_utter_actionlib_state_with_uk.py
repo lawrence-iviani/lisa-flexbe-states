@@ -5,14 +5,14 @@ from flexbe_core.proxy import ProxyActionClient
 from lisa_interaction_msgs.msg import LisaUtterAction, LisaUtterGoal
 
 
-class LisaUtterActionState(EventState):
+class LisaUtterActionStateWithUserkey(EventState):
 	'''
 	An uttering action is performed with high priority (all running dialogue are dropped immediately), this has to be used 
 	to perform an urgent prioritary announcement, possibly out of the context.
 
-	-- text_to_utter	string  Sentence to be uttered.
     	-- wait_time 		float 	wait time before exit (the end of uttering is not yet implemented, this is a fix timeout). If set to 0 (default) exit when the uttering is finished.
 
+	#> text_to_utter	string  Sentence to be uttered.
 	#> error_reason 	string 	An eventual error.
 
 	<= uttered_all 		the entire string was uttered.
@@ -20,13 +20,13 @@ class LisaUtterActionState(EventState):
 	<= error 		An error happend, more details in error_reason
 	'''
 
-	def __init__(self, text_to_utter, wait_time=0):
+	def __init__(self, wait_time=0):
 		# See example_state.py for basic explanations.
-		super(LisaUtterActionState, self).__init__(outcomes = ['uttered_all', 'timeout', 'command_error'], 
+		super(LisaUtterActionStateWithUserkey, self).__init__(outcomes = ['uttered_all', 'timeout', 'command_error'], 
+								input_keys = ['text_to_utter'],
 								output_keys = ['error_reason'])
 		self._topic = '/lisa/say'
 		self._client = ProxyActionClient({self._topic: LisaUtterAction}) # pass required clients as dict (topic: type)
-		self._sentence = text_to_utter
 		# It may happen that the action client fails to send the action goal.
 		self._error = False
 		self._error_reason = ''
@@ -64,6 +64,7 @@ class LisaUtterActionState(EventState):
 
 
 	def on_enter(self, userdata):
+		self._sentence = userdata.text_to_utter
 		# Create the goal.
 		goal = LisaUtterGoal()
 		goal.sentence = self._sentence
